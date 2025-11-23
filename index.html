@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HHJJ 3D 도어락 시뮬레이터</title>
+    <title>HHJJ 도어락 보안 게임</title>
     <style>
         * {
             margin: 0;
@@ -13,8 +13,9 @@
         
         body {
             font-family: 'Segoe UI', sans-serif;
-            background: #1a1a2e;
+            background: #0a0e27;
             overflow: hidden;
+            color: white;
         }
         
         #canvas-container {
@@ -25,262 +26,465 @@
             height: 100%;
         }
         
-        #ui-overlay {
+        #game-ui {
             position: fixed;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            z-index: 100;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             pointer-events: none;
+            z-index: 100;
         }
         
-        .panel {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
             padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
             pointer-events: auto;
         }
         
-        h1 {
-            color: #667eea;
-            font-size: 1.8em;
-            margin-bottom: 10px;
-        }
-        
-        .controls {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .scenario-btn {
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            color: white;
-            font-size: 0.85em;
-        }
-        
-        .scenario-btn.normal { background: linear-gradient(135deg, #84fab0, #8fd3f4); }
-        .scenario-btn.loitering { background: linear-gradient(135deg, #fbc2eb, #a6c1ee); }
-        .scenario-btn.intrusion { background: linear-gradient(135deg, #fa709a, #fee140); }
-        .scenario-btn.critical { background: linear-gradient(135deg, #ff0844, #ffb199); }
-        .scenario-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-        
-        .status-panel {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            pointer-events: auto;
-        }
-        
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-        }
-        
-        .status-item {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 12px;
+        .hud-item {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff88;
             border-radius: 10px;
-            text-align: center;
-        }
-        
-        .status-label {
-            font-size: 0.75em;
-            color: #666;
-            margin-bottom: 5px;
-        }
-        
-        .status-value {
+            padding: 15px 25px;
             font-size: 1.2em;
             font-weight: bold;
-            color: #333;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
         }
         
-        .risk-indicator {
+        .score {
+            color: #00ff88;
+            text-shadow: 0 0 10px #00ff88;
+        }
+        
+        .level {
+            color: #00ddff;
+            text-shadow: 0 0 10px #00ddff;
+        }
+        
+        .health-bar {
+            width: 200px;
+            height: 20px;
+            background: rgba(255, 0, 0, 0.3);
+            border: 2px solid #ff0044;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0044, #ff8844);
+            transition: width 0.3s;
+            box-shadow: 0 0 10px #ff0044;
+        }
+        
+        .mission-panel {
+            position: fixed;
+            top: 120px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #ffaa00;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 300px;
+            pointer-events: auto;
+            box-shadow: 0 0 30px rgba(255, 170, 0, 0.6);
+        }
+        
+        .mission-title {
+            color: #ffaa00;
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px #ffaa00;
+        }
+        
+        .mission-text {
+            font-size: 0.95em;
+            line-height: 1.6;
+            color: #ddd;
+        }
+        
+        .threat-indicator {
             position: fixed;
             top: 50%;
             right: 30px;
             transform: translateY(-50%);
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 3px solid;
             border-radius: 15px;
+            padding: 25px;
             text-align: center;
             pointer-events: auto;
-            min-width: 150px;
+            min-width: 180px;
+            box-shadow: 0 0 40px;
         }
         
-        .risk-level {
-            font-size: 2em;
+        .threat-level {
+            font-size: 2.5em;
             font-weight: bold;
             margin-bottom: 10px;
+            text-transform: uppercase;
+            animation: glow 2s ease-in-out infinite;
         }
         
-        .risk-level.LOW { color: #84fab0; }
-        .risk-level.MEDIUM { color: #fbc2eb; }
-        .risk-level.HIGH { color: #fa709a; }
-        .risk-level.CRITICAL { color: #ff0844; animation: pulse 1s infinite; }
+        .threat-indicator.SAFE {
+            border-color: #00ff88;
+            box-shadow: 0 0 40px rgba(0, 255, 136, 0.8);
+        }
+        
+        .threat-indicator.SAFE .threat-level {
+            color: #00ff88;
+            text-shadow: 0 0 20px #00ff88;
+        }
+        
+        .threat-indicator.CAUTION {
+            border-color: #ffff00;
+            box-shadow: 0 0 40px rgba(255, 255, 0, 0.8);
+        }
+        
+        .threat-indicator.CAUTION .threat-level {
+            color: #ffff00;
+            text-shadow: 0 0 20px #ffff00;
+        }
+        
+        .threat-indicator.DANGER {
+            border-color: #ff8800;
+            box-shadow: 0 0 40px rgba(255, 136, 0, 0.8);
+        }
+        
+        .threat-indicator.DANGER .threat-level {
+            color: #ff8800;
+            text-shadow: 0 0 20px #ff8800;
+        }
+        
+        .threat-indicator.CRITICAL {
+            border-color: #ff0044;
+            box-shadow: 0 0 40px rgba(255, 0, 68, 0.8);
+            animation: shake 0.5s infinite;
+        }
+        
+        .threat-indicator.CRITICAL .threat-level {
+            color: #ff0044;
+            text-shadow: 0 0 20px #ff0044;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateY(-50%) rotate(0deg); }
+            25% { transform: translateY(-50%) rotate(-2deg); }
+            75% { transform: translateY(-50%) rotate(2deg); }
+        }
+        
+        @keyframes glow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .controls-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ddff;
+            border-radius: 15px;
+            padding: 20px;
+            pointer-events: auto;
+            box-shadow: 0 0 30px rgba(0, 221, 255, 0.6);
+        }
+        
+        .control-btn {
+            padding: 15px 30px;
+            margin: 5px;
+            border: 2px solid;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            background: rgba(0, 0, 0, 0.7);
+        }
+        
+        .control-btn.start {
+            border-color: #00ff88;
+            color: #00ff88;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+        }
+        
+        .control-btn.start:hover {
+            background: rgba(0, 255, 136, 0.2);
+            box-shadow: 0 0 25px rgba(0, 255, 136, 0.8);
+            transform: translateY(-3px);
+        }
+        
+        .control-btn.reset {
+            border-color: #00ddff;
+            color: #00ddff;
+            box-shadow: 0 0 15px rgba(0, 221, 255, 0.5);
+        }
+        
+        .control-btn.reset:hover {
+            background: rgba(0, 221, 255, 0.2);
+            box-shadow: 0 0 25px rgba(0, 221, 255, 0.8);
+            transform: translateY(-3px);
+        }
+        
+        .level-select {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .level-btn {
+            padding: 12px 20px;
+            border: 2px solid;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(0, 0, 0, 0.5);
+            font-size: 0.9em;
+        }
+        
+        .level-btn.easy {
+            border-color: #00ff88;
+            color: #00ff88;
+        }
+        
+        .level-btn.medium {
+            border-color: #ffff00;
+            color: #ffff00;
+        }
+        
+        .level-btn.hard {
+            border-color: #ff8800;
+            color: #ff8800;
+        }
+        
+        .level-btn.expert {
+            border-color: #ff0044;
+            color: #ff0044;
+        }
+        
+        .level-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px currentColor;
+        }
+        
+        .alert-banner {
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 0, 68, 0.95);
+            border: 3px solid #ff0044;
+            border-radius: 15px;
+            padding: 20px 40px;
+            font-size: 1.5em;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 0 40px rgba(255, 0, 68, 0.8);
+            transition: top 0.5s;
+            z-index: 1000;
+        }
+        
+        .alert-banner.show {
+            top: 20px;
+            animation: pulse 0.5s infinite;
+        }
         
         @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.05); }
         }
         
-        .instructions {
-            font-size: 0.85em;
-            color: #999;
-            margin-top: 10px;
+        .particle {
+            position: fixed;
+            pointer-events: none;
+            font-size: 2em;
+            animation: float-up 2s ease-out forwards;
+        }
+        
+        @keyframes float-up {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-100px); }
         }
     </style>
 </head>
 <body>
     <div id="canvas-container"></div>
     
-    <div id="ui-overlay">
-        <div class="panel">
-            <h1>🔒 HHJJ 3D 도어락 시뮬레이터</h1>
-            <p style="color: #666; font-size: 0.9em;">실시간 3D 위험 감지 시뮬레이션</p>
+    <div id="game-ui">
+        <div class="hud-top">
+            <div class="hud-item">
+                <div style="font-size: 0.8em; margin-bottom: 5px;">점수</div>
+                <div class="score" id="score">0</div>
+            </div>
             
-            <div class="controls">
-                <button class="scenario-btn normal" onclick="startScenario('normal')">
-                    ✅ 정상 방문
+            <div class="hud-item">
+                <div style="font-size: 0.8em; margin-bottom: 5px;">레벨</div>
+                <div class="level" id="level">1</div>
+            </div>
+            
+            <div class="hud-item">
+                <div style="font-size: 0.8em; margin-bottom: 5px;">보안 등급</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="health-bar" style="width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mission-panel">
+            <div class="mission-title">🎯 미션</div>
+            <div class="mission-text" id="mission-text">
+                난이도를 선택하고 침입자를 감지하세요!
+            </div>
+        </div>
+        
+        <div class="threat-indicator SAFE" id="threat-indicator">
+            <div class="threat-level" id="threat-level">SAFE</div>
+            <div style="font-size: 0.9em;" id="threat-time">00:00</div>
+        </div>
+        
+        <div class="controls-panel">
+            <div>
+                <button class="control-btn start" onclick="toggleSimulation()">
+                    <span id="play-text">▶️ 시작</span>
                 </button>
-                <button class="scenario-btn loitering" onclick="startScenario('loitering')">
-                    ⚠️ 의심 배회
-                </button>
-                <button class="scenario-btn intrusion" onclick="startScenario('intrusion')">
-                    🚨 침입 시도
-                </button>
-                <button class="scenario-btn critical" onclick="startScenario('critical')">
-                    🆘 강제 파손
+                <button class="control-btn reset" onclick="resetGame()">
+                    🔄 리셋
                 </button>
             </div>
             
-            <div class="instructions">
-                🖱️ 마우스로 시점 회전 | 🔍 스크롤로 줌 인/아웃
+            <div class="level-select">
+                <button class="level-btn easy" onclick="selectLevel('easy')">
+                    🟢 EASY<br><small>정상 방문</small>
+                </button>
+                <button class="level-btn medium" onclick="selectLevel('medium')">
+                    🟡 MEDIUM<br><small>의심 배회</small>
+                </button>
+                <button class="level-btn hard" onclick="selectLevel('hard')">
+                    🟠 HARD<br><small>침입 시도</small>
+                </button>
+                <button class="level-btn expert" onclick="selectLevel('expert')">
+                    🔴 EXPERT<br><small>강제 파손</small>
+                </button>
             </div>
         </div>
     </div>
     
-    <div class="risk-indicator">
-        <div class="risk-level" id="risk-level">LOW</div>
-        <div style="font-size: 0.9em; color: #666;">위험도</div>
-        <div style="margin-top: 10px; font-size: 0.85em;" id="elapsed-time">0초</div>
-    </div>
-    
-    <div class="status-panel">
-        <div class="panel">
-            <div class="status-grid">
-                <div class="status-item">
-                    <div class="status-label">거리</div>
-                    <div class="status-value" id="distance-value">300cm</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">체류시간</div>
-                    <div class="status-value" id="dwell-value">0초</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">진동</div>
-                    <div class="status-value" id="vibration-value">0.0g</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">음압</div>
-                    <div class="status-value" id="audio-value">40dB</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">전원</div>
-                    <div class="status-value" id="power-value">✅</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">외함</div>
-                    <div class="status-value" id="tamper-value">🔒</div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div class="alert-banner" id="alert-banner">🚨 침입 감지! 🚨</div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // Three.js 기본 설정
+        // 게임 상태
+        let gameState = {
+            score: 0,
+            level: 1,
+            health: 100,
+            currentDifficulty: null,
+            isPlaying: false,
+            elapsedTime: 0
+        };
+        
+        // Three.js 기본
         let scene, camera, renderer, door, person, sensors, doorLock;
-        let sensorData = { distance: 300, dwellTime: 0, vibration: 0, audio: 40, powerNormal: true, housingOpen: false };
-        let currentScenario = null, elapsedTime = 0, simulationInterval = null;
+        let particles = [];
+        
+        // 센서 데이터
+        let sensorData = {
+            distance: 300,
+            dwellTime: 0,
+            vibration: 0,
+            audio: 40,
+            powerNormal: true,
+            housingOpen: false
+        };
+        
+        let simulationInterval = null;
         
         // 씬 초기화
         function initScene() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb);
-            scene.fog = new THREE.Fog(0x87ceeb, 10, 50);
+            scene.background = new THREE.Color(0x0a0e27);
+            scene.fog = new THREE.Fog(0x0a0e27, 10, 50);
             
-            // 카메라
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 2, 8);
+            camera.position.set(3, 2, 8);
             camera.lookAt(0, 2, 0);
             
-            // 렌더러
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
             document.getElementById('canvas-container').appendChild(renderer.domElement);
             
             // 조명
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
             scene.add(ambientLight);
             
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(5, 10, 5);
-            directionalLight.castShadow = true;
-            scene.add(directionalLight);
+            const spotLight = new THREE.SpotLight(0xffffff, 1);
+            spotLight.position.set(0, 10, 5);
+            spotLight.castShadow = true;
+            scene.add(spotLight);
             
-            // 바닥
-            const floorGeometry = new THREE.PlaneGeometry(20, 20);
-            const floorMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc });
-            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-            floor.rotation.x = -Math.PI / 2;
-            floor.receiveShadow = true;
-            scene.add(floor);
+            // 포인트 라이트 (도어락)
+            const doorLight = new THREE.PointLight(0x00ff88, 1, 10);
+            doorLight.position.set(0.6, 1.5, -2.5);
+            scene.add(doorLight);
             
-            // 벽 (현관)
+            // 바닥 (네온 그리드)
+            const gridHelper = new THREE.GridHelper(20, 20, 0x00ff88, 0x003344);
+            scene.add(gridHelper);
+            
+            // 벽
             const wallGeometry = new THREE.BoxGeometry(10, 5, 0.2);
-            const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xf5f5dc });
+            const wallMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x1a1a2e,
+                metalness: 0.5,
+                roughness: 0.5
+            });
             const wall = new THREE.Mesh(wallGeometry, wallMaterial);
             wall.position.set(0, 2.5, -3);
-            wall.receiveShadow = true;
             scene.add(wall);
             
-            // 문
+            // 문 (미래형)
             const doorGeometry = new THREE.BoxGeometry(1.5, 3, 0.1);
-            const doorMaterial = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
+            const doorMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x2a2a3e,
+                metalness: 0.8,
+                roughness: 0.2,
+                emissive: 0x001122,
+                emissiveIntensity: 0.3
+            });
             door = new THREE.Mesh(doorGeometry, doorMaterial);
             door.position.set(0, 1.5, -2.9);
             door.castShadow = true;
             scene.add(door);
             
-            // 도어락 (문 옆)
+            // 도어락 (발광)
             const lockGeometry = new THREE.BoxGeometry(0.3, 0.4, 0.15);
-            const lockMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const lockMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x00ff88,
+                metalness: 0.9,
+                roughness: 0.1,
+                emissive: 0x00ff88,
+                emissiveIntensity: 0.5
+            });
             doorLock = new THREE.Mesh(lockGeometry, lockMaterial);
             doorLock.position.set(0.6, 1.5, -2.85);
             scene.add(doorLock);
             
-            // ToF 센서 표시 (3개)
+            // ToF 센서 (3개, 발광)
             sensors = new THREE.Group();
             for (let i = 0; i < 3; i++) {
                 const sensorGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.1);
                 const sensorMaterial = new THREE.MeshStandardMaterial({ 
-                    color: 0x00ff00,
-                    emissive: 0x00ff00,
-                    emissiveIntensity: 0.5
+                    color: 0x00ff88,
+                    emissive: 0x00ff88,
+                    emissiveIntensity: 1.0
                 });
                 const sensor = new THREE.Mesh(sensorGeometry, sensorMaterial);
                 sensor.position.set((i - 1) * 0.3, 0.5, -2.8);
@@ -289,34 +493,35 @@
             }
             scene.add(sensors);
             
-            // 인물 (간단한 박스 캐릭터)
+            // 인물 (게임 캐릭터 스타일)
             const personGeometry = new THREE.BoxGeometry(0.6, 1.8, 0.4);
-            const personMaterial = new THREE.MeshStandardMaterial({ color: 0x4169e1 });
+            const personMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xff0044,
+                emissive: 0xff0044,
+                emissiveIntensity: 0.3
+            });
             person = new THREE.Mesh(personGeometry, personMaterial);
-            person.position.set(0, 0.9, 3);
+            person.position.set(0, 0.9, 5);
             person.castShadow = true;
             scene.add(person);
             
-            // 마우스 컨트롤
-            let isDragging = false;
-            let previousMousePosition = { x: 0, y: 0 };
+            // 머리 추가
+            const headGeometry = new THREE.SphereGeometry(0.3);
+            const head = new THREE.Mesh(headGeometry, personMaterial);
+            head.position.set(0, 1.2, 0);
+            person.add(head);
             
-            renderer.domElement.addEventListener('mousedown', () => isDragging = true);
-            renderer.domElement.addEventListener('mouseup', () => isDragging = false);
-            renderer.domElement.addEventListener('mousemove', (e) => {
-                if (isDragging) {
-                    const deltaX = e.clientX - previousMousePosition.x;
-                    camera.position.x += deltaX * 0.01;
+            // 카메라 회전 애니메이션
+            let cameraAngle = 0;
+            setInterval(() => {
+                if (gameState.isPlaying) {
+                    cameraAngle += 0.001;
+                    camera.position.x = Math.sin(cameraAngle) * 8;
+                    camera.position.z = Math.cos(cameraAngle) * 8;
+                    camera.lookAt(0, 2, 0);
                 }
-                previousMousePosition = { x: e.clientX, y: e.clientY };
-            });
+            }, 16);
             
-            renderer.domElement.addEventListener('wheel', (e) => {
-                camera.position.z += e.deltaY * 0.01;
-                camera.position.z = Math.max(3, Math.min(15, camera.position.z));
-            });
-            
-            // 애니메이션 루프
             animate();
         }
         
@@ -325,79 +530,103 @@
             
             // 센서 발광 애니메이션
             sensors.children.forEach((sensor, i) => {
-                sensor.material.emissiveIntensity = 0.3 + Math.sin(Date.now() * 0.002 + i) * 0.2;
+                sensor.material.emissiveIntensity = 0.5 + Math.sin(Date.now() * 0.003 + i * 2) * 0.5;
             });
             
-            // 위험도에 따른 도어락 색상 변화
-            const risk = calculateRisk();
-            if (risk.riskLevel === 'LOW') {
-                doorLock.material.color.setHex(0x00ff00);
-                doorLock.material.emissive = new THREE.Color(0x00ff00);
-                doorLock.material.emissiveIntensity = 0.3;
-            } else if (risk.riskLevel === 'MEDIUM') {
-                doorLock.material.color.setHex(0xffff00);
-                doorLock.material.emissive = new THREE.Color(0xffff00);
+            // 위험도에 따른 효과
+            const threat = getThreatLevel();
+            
+            if (threat === 'SAFE') {
+                doorLock.material.color.setHex(0x00ff88);
+                doorLock.material.emissive.setHex(0x00ff88);
                 doorLock.material.emissiveIntensity = 0.5;
-            } else if (risk.riskLevel === 'HIGH') {
-                doorLock.material.color.setHex(0xff8800);
-                doorLock.material.emissive = new THREE.Color(0xff8800);
+                scene.fog.color.setHex(0x0a0e27);
+            } else if (threat === 'CAUTION') {
+                doorLock.material.color.setHex(0xffff00);
+                doorLock.material.emissive.setHex(0xffff00);
                 doorLock.material.emissiveIntensity = 0.7;
-            } else {
-                doorLock.material.color.setHex(0xff0000);
-                doorLock.material.emissive = new THREE.Color(0xff0000);
-                doorLock.material.emissiveIntensity = 1.0;
-                // CRITICAL 시 도어락 진동 효과
-                doorLock.position.x = 0.6 + Math.sin(Date.now() * 0.02) * 0.05;
+                scene.fog.color.setHex(0x1a1a0e);
+            } else if (threat === 'DANGER') {
+                doorLock.material.color.setHex(0xff8800);
+                doorLock.material.emissive.setHex(0xff8800);
+                doorLock.material.emissiveIntensity = 0.9;
+                scene.fog.color.setHex(0x1a0e0e);
+                door.rotation.y = Math.sin(Date.now() * 0.01) * 0.05;
+            } else if (threat === 'CRITICAL') {
+                doorLock.material.color.setHex(0xff0044);
+                doorLock.material.emissive.setHex(0xff0044);
+                doorLock.material.emissiveIntensity = 1.5;
+                scene.fog.color.setHex(0x2a0e0e);
+                door.rotation.y = Math.sin(Date.now() * 0.02) * 0.1;
+                doorLock.position.x = 0.6 + Math.sin(Date.now() * 0.05) * 0.1;
+                person.material.emissiveIntensity = 0.5 + Math.sin(Date.now() * 0.01) * 0.5;
             }
             
             renderer.render(scene, camera);
         }
         
-        // 위험도 계산
-        function calculateRisk() {
+        // 위협 레벨 계산
+        function getThreatLevel() {
             let d = (300 - sensorData.distance) / 300;
             let t = Math.min(sensorData.dwellTime / 300, 1);
             let v = Math.min(sensorData.vibration / 10, 1);
-            let a = Math.min(Math.max((sensorData.audio - 40) / 80, 0), 1);
-            let p = sensorData.powerNormal ? 0 : 1;
-            let h = sensorData.housingOpen ? 1 : 0;
-            let score = d * 0.25 + t * 0.20 + v * 0.20 + a * 0.15 + p * 0.10 + h * 0.10;
+            let score = d * 0.4 + t * 0.3 + v * 0.3;
             
-            let level = score < 0.3 ? 'LOW' : score < 0.6 ? 'MEDIUM' : score < 0.85 ? 'HIGH' : 'CRITICAL';
-            return { riskLevel: level, score: score };
+            if (score < 0.3) return 'SAFE';
+            if (score < 0.6) return 'CAUTION';
+            if (score < 0.85) return 'DANGER';
+            return 'CRITICAL';
         }
         
-        // 시나리오
-        const scenarios = {
-            normal: {
+        // 난이도별 시나리오
+        const levels = {
+            easy: {
+                name: '정상 방문자',
+                mission: '정상 방문자를 식별하세요. 도어벨을 누르면 안전합니다.',
                 duration: 40,
+                scoreMultiplier: 1,
                 update: (t) => {
-                    // 인물이 접근 → 정지 → 후퇴
                     if (t < 5) {
-                        person.position.z = 3 - t * 0.5;
+                        person.position.z = 5 - t * 0.9;
                         sensorData.distance = 200 - t * 30;
                     } else if (t < 30) {
                         person.position.z = 0.5;
                         sensorData.distance = 50;
                     } else {
-                        person.position.z = 0.5 + (t - 30) * 0.25;
+                        person.position.z = 0.5 + (t - 30) * 0.45;
                         sensorData.distance = 50 + (t - 30) * 25;
                     }
                     sensorData.dwellTime = t;
                     sensorData.audio = t === 10 ? 70 : 40;
+                    
+                    if (t === 10) {
+                        playSound('bell');
+                        addScore(50);
+                    }
                 }
             },
-            loitering: {
+            medium: {
+                name: '의심스러운 배회',
+                mission: '배회하는 인물을 감지하세요. 90초 이상 체류 시 위험!',
                 duration: 120,
+                scoreMultiplier: 2,
                 update: (t) => {
-                    person.position.z = 0.5 + Math.sin(t * 0.1) * 0.2;
-                    person.position.x = Math.sin(t * 0.05) * 0.3;
-                    sensorData.distance = 50 + Math.random() * 10;
+                    person.position.z = 0.5 + Math.sin(t * 0.1) * 0.3;
+                    person.position.x = Math.sin(t * 0.05) * 0.5;
+                    person.rotation.y = Math.sin(t * 0.1) * 0.3;
+                    sensorData.distance = 50 + Math.random() * 20;
                     sensorData.dwellTime = t;
+                    
+                    if (t === 30 || t === 60 || t === 90) {
+                        addScore(100 * gameState.level);
+                    }
                 }
             },
-            intrusion: {
+            hard: {
+                name: '침입 시도',
+                mission: '침입자를 막으세요! 드릴음과 진동을 감지해야 합니다.',
                 duration: 180,
+                scoreMultiplier: 3,
                 update: (t) => {
                     person.position.z = 0.3;
                     sensorData.distance = 50;
@@ -406,15 +635,22 @@
                     if (t > 90) {
                         sensorData.vibration = 3 + Math.random() * 2;
                         sensorData.audio = 85 + Math.random() * 10;
-                        // 문 흔들림 효과
-                        door.rotation.y = Math.sin(t * 0.3) * 0.05;
-                        // 인물이 문을 공격하는 동작
-                        person.position.z = 0.1 + Math.sin(t * 0.5) * 0.1;
+                        door.rotation.y = Math.sin(t * 0.3) * 0.08;
+                        person.position.z = 0.1 + Math.sin(t * 0.5) * 0.15;
+                        
+                        if (t === 91) {
+                            playSound('drill');
+                            addScore(200 * gameState.level);
+                            damageHealth(5);
+                        }
                     }
                 }
             },
-            critical: {
+            expert: {
+                name: '강제 파손',
+                mission: '긴급! 도어락 파괴 시도를 막으세요! 자동 신고 필요!',
                 duration: 200,
+                scoreMultiplier: 5,
                 update: (t) => {
                     person.position.z = 0.1;
                     sensorData.distance = 30;
@@ -423,75 +659,165 @@
                     if (t > 120) {
                         sensorData.vibration = 5 + Math.random() * 3;
                         sensorData.audio = 90 + Math.random() * 10;
-                        door.rotation.y = Math.sin(t * 0.5) * 0.1;
+                        door.rotation.y = Math.sin(t * 0.5) * 0.15;
+                        person.position.z = Math.sin(t * 0.8) * 0.1;
+                        damageHealth(0.5);
                     }
                     
                     if (t > 150) {
                         sensorData.housingOpen = true;
-                        // 도어락 외함이 벌어지는 효과
-                        doorLock.scale.x = 1.2;
+                        doorLock.scale.x = 1.2 + Math.sin(t * 0.1) * 0.1;
+                        
+                        if (t === 151) {
+                            playSound('alarm');
+                            showAlert();
+                            addScore(500 * gameState.level);
+                        }
                     }
                     
                     if (t > 180) {
                         sensorData.powerNormal = false;
-                        // 전원 차단 시 화면 어두워짐
-                        scene.background = new THREE.Color(0x330000);
+                        scene.background = new THREE.Color(0x2a0000);
                     }
                 }
             }
         };
         
-        function startScenario(name) {
-            resetSimulation();
-            currentScenario = name;
+        // 게임 로직
+        function selectLevel(difficulty) {
+            gameState.currentDifficulty = difficulty;
+            document.getElementById('mission-text').textContent = levels[difficulty].mission;
+            createParticle('🎯', window.innerWidth / 2, window.innerHeight / 2);
+        }
+        
+        function toggleSimulation() {
+            if (!gameState.currentDifficulty) {
+                alert('난이도를 먼저 선택하세요!');
+                return;
+            }
+            
+            if (gameState.isPlaying) {
+                pauseSimulation();
+            } else {
+                startSimulation();
+            }
+        }
+        
+        function startSimulation() {
+            gameState.isPlaying = true;
+            gameState.elapsedTime = 0;
+            document.getElementById('play-text').textContent = '⏸️ 일시정지';
+            
+            const level = levels[gameState.currentDifficulty];
             
             simulationInterval = setInterval(() => {
-                elapsedTime++;
+                gameState.elapsedTime++;
                 
-                if (elapsedTime <= scenarios[currentScenario].duration) {
-                    scenarios[currentScenario].update(elapsedTime);
+                if (gameState.elapsedTime <= level.duration) {
+                    level.update(gameState.elapsedTime);
                     updateUI();
+                    
+                    // 자동 점수 증가
+                    if (gameState.elapsedTime % 5 === 0) {
+                        addScore(10 * level.scoreMultiplier);
+                    }
+                } else {
+                    completeLevel();
                 }
             }, 1000);
         }
         
-        function updateUI() {
-            document.getElementById('distance-value').textContent = Math.round(sensorData.distance) + 'cm';
-            document.getElementById('dwell-value').textContent = sensorData.dwellTime + '초';
-            document.getElementById('vibration-value').textContent = sensorData.vibration.toFixed(1) + 'g';
-            document.getElementById('audio-value').textContent = Math.round(sensorData.audio) + 'dB';
-            document.getElementById('power-value').textContent = sensorData.powerNormal ? '✅' : '❌';
-            document.getElementById('tamper-value').textContent = sensorData.housingOpen ? '🔓' : '🔒';
-            document.getElementById('elapsed-time').textContent = elapsedTime + '초';
-            
-            const risk = calculateRisk();
-            const riskElem = document.getElementById('risk-level');
-            riskElem.textContent = risk.riskLevel;
-            riskElem.className = 'risk-level ' + risk.riskLevel;
+        function pauseSimulation() {
+            gameState.isPlaying = false;
+            clearInterval(simulationInterval);
+            document.getElementById('play-text').textContent = '▶️ 재개';
+        }
+        
+        function completeLevel() {
+            pauseSimulation();
+            gameState.level++;
+            addScore(1000 * gameState.level);
+            createParticle('🎉', window.innerWidth / 2, 200);
+            alert(`레벨 ${gameState.level - 1} 완료! 보너스: ${1000 * gameState.level}점`);
+            resetSimulation();
+        }
+        
+        function resetGame() {
+            pauseSimulation();
+            gameState = { score: 0, level: 1, health: 100, currentDifficulty: null, isPlaying: false, elapsedTime: 0 };
+            resetSimulation();
+            updateUI();
+            createParticle('🔄', window.innerWidth / 2, window.innerHeight / 2);
         }
         
         function resetSimulation() {
-            if (simulationInterval) clearInterval(simulationInterval);
-            elapsedTime = 0;
+            gameState.elapsedTime = 0;
             sensorData = { distance: 300, dwellTime: 0, vibration: 0, audio: 40, powerNormal: true, housingOpen: false };
-            person.position.set(0, 0.9, 3);
+            person.position.set(0, 0.9, 5);
+            person.rotation.y = 0;
             door.rotation.y = 0;
             doorLock.scale.set(1, 1, 1);
             doorLock.position.x = 0.6;
-            scene.background = new THREE.Color(0x87ceeb);
-            updateUI();
+            scene.background = new THREE.Color(0x0a0e27);
         }
         
-        // 윈도우 리사이즈
+        function addScore(points) {
+            gameState.score += points;
+            createParticle(`+${points}`, window.innerWidth * 0.15, 80);
+        }
+        
+        function damageHealth(amount) {
+            gameState.health = Math.max(0, gameState.health - amount);
+            if (gameState.health === 0) {
+                alert('보안 시스템 붕괴! 게임 오버');
+                resetGame();
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('level').textContent = gameState.level;
+            document.getElementById('health-bar').style.width = gameState.health + '%';
+            
+            const threat = getThreatLevel();
+            const indicator = document.getElementById('threat-indicator');
+            indicator.className = 'threat-indicator ' + threat;
+            document.getElementById('threat-level').textContent = threat;
+            
+            const minutes = Math.floor(gameState.elapsedTime / 60);
+            const seconds = gameState.elapsedTime % 60;
+            document.getElementById('threat-time').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function showAlert() {
+            const banner = document.getElementById('alert-banner');
+            banner.classList.add('show');
+            setTimeout(() => banner.classList.remove('show'), 3000);
+        }
+        
+        function createParticle(emoji, x, y) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.textContent = emoji;
+            particle.style.left = x + 'px';
+            particle.style.top = y + 'px';
+            document.body.appendChild(particle);
+            setTimeout(() => particle.remove(), 2000);
+        }
+        
+        function playSound(type) {
+            // 실제 프로젝트에서는 오디오 파일 사용
+            console.log('🔊 Sound:', type);
+        }
+        
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
         
-        // 초기화
         initScene();
-        resetSimulation();
     </script>
 </body>
 </html>
